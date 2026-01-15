@@ -1,0 +1,85 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+
+  html,
+  body {
+    @apply h-full bg-slate-50 text-slate-900;
+  }
+
+  #root {
+    @apply h-full;
+  }
+}
+
+.rbc-calendar {
+  @apply font-sans;
+}
+
+/* Custom Calendar Implementation Tweaks for MVP */
+.rbc-time-view {
+  @apply border-slate-200 rounded-lg bg-white shadow-sm;
+}
+
+/* Time View: Header & Grid Separation */
+/* Time View: Header & Grid Separation */
+.rbc-time-header {
+  @apply mb-0;
+}
+
+.rbc-allday-cell {
+  @apply !hidden;
+}
+
+.rbc-time-content {
+  @apply mt-3 border-t border-slate-100;
+}
+
+.rbc-header {
+  @apply py-2 font-medium text-slate-600 border-b border-slate-200 capitalize;
+}
+
+/* Day Column Highlight (Subtle) */
+.rbc-today {
+  @apply !bg-brand-purple/[0.02];
+}
+
+/* Event Styling */
+.rbc-event {
+  @apply !bg-brand-purple border-none shadow-sm rounded-md px-1 py-0.5 transition-all text-xs;
+}
+
+.rbc-event:hover {
+  @apply !bg-brand-dark !shadow-md translate-y-[-1px];
+}
+
+/* Slot Hover Effect (Clickable indication) */
+.rbc-day-slot .rbc-time-slot {
+  @apply transition-colors duration-75 border-slate-100;
+}
+
+.rbc-day-slot .rbc-time-slot:hover {
+  @apply !bg-brand-purple/5 cursor-pointer;
+}
+
+.rbc-current-time-indicator {
+  @apply !bg-brand-mint !h-[2px] opacity-80;
+}
+
+/* Custom Scrollbar for lists */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-300;
+}

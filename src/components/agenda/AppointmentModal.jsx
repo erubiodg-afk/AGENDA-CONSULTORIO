@@ -248,7 +248,7 @@ export function AppointmentModal({ isOpen, onClose, initialDate, initialEvent, o
                             <input
                                 type="date"
                                 className={cn(
-                                    "w-full pl-11 rounded-lg border pr-3 py-2 text-sm transition-all shadow-sm",
+                                    "w-full h-11 pl-11 rounded-lg border pr-3 py-2 text-sm transition-all shadow-sm",
                                     errors.date ? "border-red-500" : "border-slate-300 focus:border-brand-purple focus:ring-1 focus:ring-brand-purple/20"
                                 )}
                                 value={formData.date}

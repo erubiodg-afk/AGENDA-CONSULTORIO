@@ -39,8 +39,8 @@ export function Modal({ isOpen, onClose, title, children, footer, className }) {
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
                     <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
-                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-slate-100 h-8 w-8">
-                        <X className="w-5 h-5 text-slate-500" />
+                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-slate-100 h-11 w-11">
+                        <X className="w-6 h-6 text-slate-500" />
                     </Button>
                 </div>
 

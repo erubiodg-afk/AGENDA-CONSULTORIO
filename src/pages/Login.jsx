@@ -9,7 +9,7 @@ export function Login({ onLogin }) {
             <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-mint/10 rounded-full blur-3xl pointer-events-none" />
 
             {/* Main Card */}
-            <div className="w-full max-w-[420px] bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-8 md:p-10 relative z-10 flex flex-col items-center">
+            <div className="w-full max-w-[420px] md:max-w-[420px] bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-6 md:p-10 relative z-10 flex flex-col items-center mx-4 md:mx-0">
 
                 {/* Isotype */}
                 <div className="w-16 h-16 md:w-20 md:h-20 mb-6">

@@ -215,7 +215,8 @@ export function Agenda() {
             </div>
 
             <div className="flex-1 flex flex-col md:flex-row gap-4 h-[calc(100vh-140px)]">
-                <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4 relative">
+                {/* Desktop Calendar View */}
+                <div className="hidden md:block flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4 relative">
                     <Calendar
                         localizer={localizer}
                         events={events}
@@ -256,6 +257,70 @@ export function Agenda() {
                             showMore: total => `+ Ver más (${total})`
                         }}
                     />
+                </div>
+
+                {/* Mobile List View */}
+                <div className="md:hidden flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    {/* Mobile Date Navigator */}
+                    <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+                        <Button variant="ghost" size="icon" onClick={() => setDate(addMinutes(date, -24 * 60))}>
+                            <ChevronRight className="w-5 h-5 rotate-180" />
+                        </Button>
+                        <div className="text-center">
+                            <h2 className="text-lg font-bold text-slate-800 capitalize">
+                                {format(date, 'EEEE d MMM', { locale: esES })}
+                            </h2>
+                            <p className="text-xs text-slate-500 font-medium">
+                                {events.filter(e => isSameDay(e.start, date)).length} citas hoy
+                            </p>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => setDate(addMinutes(date, 24 * 60))}>
+                            <ChevronRight className="w-5 h-5" />
+                        </Button>
+                    </div>
+
+                    {/* Mobile Event List */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {events.filter(e => isSameDay(e.start, date)).length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                                <Calendar className="w-12 h-12 mb-3 opacity-20" />
+                                <p className="text-sm">No hay citas para este día</p>
+                                <Button size="sm" variant="outline" className="mt-4" onClick={handleCreateNew}>
+                                    Agendar cita
+                                </Button>
+                            </div>
+                        ) : (
+                            events.filter(e => isSameDay(e.start, date))
+                                .sort((a, b) => a.start - b.start)
+                                .map(evt => (
+                                    <div
+                                        key={evt.id}
+                                        onClick={() => handleSelectEvent(evt)}
+                                        className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm active:scale-[0.98] transition-transform flex gap-3"
+                                    >
+                                        <div className="flex flex-col items-center justify-center px-3 bg-brand-purple/5 rounded border border-brand-purple/10 min-w-[60px]">
+                                            <span className="text-sm font-bold text-brand-purple">{format(evt.start, 'HH:mm')}</span>
+                                            <span className="text-[10px] text-slate-400">{format(evt.end, 'HH:mm')}</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0 py-0.5">
+                                            <h3 className="font-semibold text-slate-800 truncate text-base">{evt.title.split(' - ')[1] || evt.title}</h3>
+                                            <p className="text-sm text-slate-500 truncate">{evt.title.split(' - ')[0]}</p>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                {evt.phone && (
+                                                    <a href={`tel:${evt.phone}`} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-green-50 text-green-700 rounded-full border border-green-100">
+                                                        <Phone className="w-3 h-3" />
+                                                        Llamar
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-center text-slate-300">
+                                            <ChevronRight className="w-5 h-5" />
+                                        </div>
+                                    </div>
+                                ))
+                        )}
+                    </div>
                 </div>
 
                 {/* Side Panel for Lists */}

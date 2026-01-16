@@ -19,10 +19,10 @@ export function Button({
     };
 
     const sizes = {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-8 px-3 text-xs',
+        default: 'h-11 px-4 py-2', // Bumped to 44px
+        sm: 'h-9 px-3 text-xs',     // Bumped slightly
         lg: 'h-12 px-8',
-        icon: 'h-10 w-10 p-0 flex items-center justify-center',
+        icon: 'h-11 w-11 p-0 flex items-center justify-center', // Bumped to 44px
     };
 
     return (

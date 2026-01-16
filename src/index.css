@@ -5,7 +5,15 @@
 
   html,
   body {
-    @apply h-full bg-slate-50 text-slate-900;
+    @apply h-full bg-slate-50 text-slate-900 text-[14px] md:text-[16px];
+    /* Mobile text scaling */
+  }
+
+  /* Global Touch Target fix for inputs */
+  input,
+  select,
+  textarea {
+    @apply min-h-[44px];
   }
 
   #root {

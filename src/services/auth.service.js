@@ -47,34 +47,41 @@ export const authService = {
     },
 
     logout: async () => {
-        // 1. Intentar obtener sesión para revocar token
+        console.log("Ejecutando Cierre Forzado de Sesión...");
+
+        // 1. Revocación Inmediata (Google Identity Services)
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.provider_token) {
-                console.log("Revocando token de Google...");
-                await fetch('https://oauth2.googleapis.com/revoke', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `token=${session.provider_token}`
-                });
+            if (window.google?.accounts?.id) {
+                window.google.accounts.id.disableAutoSelect();
+                console.log("Google AutoSelect disabled");
             }
         } catch (e) {
-            console.warn("Error revoking Google token:", e);
+            console.warn("Error disabling Google AutoSelect:", e);
         }
 
-        // 2. Cerrar sesión en Supabase
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
+        // 2. Limpieza de Cookies por Dominio
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i];
+            const eqPos = cookie.indexOf("=");
+            const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+            document.cookie = name.trim() + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        }
 
-        // 3. Limpieza local TOTAL
-        console.log("Realizando limpieza local exhaustiva...");
-        localStorage.clear(); // Borra todo
-        sessionStorage.clear(); // Borra todo
+        // 3. Limpieza de Almacenamiento Local (Backup)
+        localStorage.clear();
+        sessionStorage.clear();
 
-        // Eliminar cookies específicas si existen (aunque HttpOnly no se pueden borrar desde JS)
-        document.cookie.split(";").forEach((c) => {
-            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-        });
+        // 4. Cerrar sesión en Supabase (sin esperar confirmación estricta para no bloquear)
+        try {
+            await supabase.auth.signOut();
+        } catch (e) {
+            console.warn("Supabase signOut error:", e);
+        }
+
+        // 5. Redirección con Parámetro de Limpieza
+        // Usamos window.location.origin para ir a la raíz (donde está Login)
+        window.location.href = `${window.location.origin}/?logout=true`;
     },
 
     getSession: async () => {

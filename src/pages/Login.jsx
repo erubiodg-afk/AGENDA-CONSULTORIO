@@ -6,6 +6,19 @@ export function Login({ onLogin, error }) {
     const [isLoading, setIsLoading] = useState(false);
     // const [error, setError] = useState(''); // Error viene de props ahora
 
+    // Script de Seguridad: Limpieza forzada tras logout
+    React.useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('logout') === 'true') {
+            console.log("Forced Logout Cleanup detected in Login");
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // Limpiar parámetro de la URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, []);
+
     // const handleSubmit ... eliminado
 
     return (

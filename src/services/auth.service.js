@@ -15,27 +15,30 @@ export const authService = {
                     ? 'https://agenda-consultorio.netlify.app'
                     : window.location.origin,
                 skipBrowserRedirect: true,
-                // NO pasamos queryParams aquí para evitar duplicados.
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent select_account', // Supabase debería ponerlo
+                },
                 scopes: 'https://www.googleapis.com/auth/calendar'
             }
         });
 
         if (error) throw error;
 
-        // 2. Construcción manual y forzada de la URL
+        // 2. Construcción manual (redundancia de seguridad)
         if (data?.url) {
             const urlObj = new URL(data.url);
 
-            // Limpiar parámetros para asegurar estado fresco
-            urlObj.searchParams.delete('prompt');
-            urlObj.searchParams.delete('access_type');
+            // Confirmar que prompt esté presente
+            if (!urlObj.searchParams.has('prompt') || !urlObj.searchParams.get('prompt').includes('select_account')) {
+                urlObj.searchParams.set('prompt', 'consent select_account');
+            }
+            // Asegurar access_type
+            if (!urlObj.searchParams.has('access_type')) {
+                urlObj.searchParams.set('access_type', 'offline');
+            }
 
-            // CRÍTICO: 'select_account' fuerza a Google a mostrar el selector de cuentas
-            // 'consent' fuerza a Google a pedir permisos de nuevo (no siempre necesario pero útil para refresh token)
-            urlObj.searchParams.set('prompt', 'consent select_account');
-            urlObj.searchParams.set('access_type', 'offline');
-
-            console.log("Redirecting to (forced):", urlObj.toString());
+            console.log("Redirecting to (final):", urlObj.toString());
             window.location.href = urlObj.toString();
         } else {
             throw new Error('No se pudo generar la URL de autenticación.');
@@ -45,38 +48,41 @@ export const authService = {
     },
 
     logout: async () => {
-        console.log("Ejecutando Cierre Forzado de Sesión (v3 - Token Revocation)...");
+        console.log("Ejecutando Cierre Forzado de Sesión (v4 - Email Revocation)...");
 
-        // 1. Obtener Sesión Actual para Revocar Token
+        // 1. Obtener Sesión para Email y Token
+        let userEmail = null;
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            const providerToken = session?.provider_token; // Token de acceso de Google
+            const providerToken = session?.provider_token;
+            userEmail = session?.user?.email;
 
+            // 1a. Revocación de Token (Servidor)
             if (providerToken) {
                 console.log("Revocando token de Google en servidor...");
-                // Endpoint oficial de revocación de Google
                 await fetch('https://oauth2.googleapis.com/revoke', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: `token=${providerToken}`
                 });
-                console.log("Token revocado exitosamente.");
-            } else {
-                console.warn("No se encontró provider_token para revocar. Es posible que la sesión ya haya expirado o no se hayan guardado tokens.");
             }
-        } catch (e) {
-            console.warn("Error revocando token de Google:", e);
+        } catch (e) { console.warn("Error getting session for revoke:", e); }
+
+        // 1b. Revocación de Permisos por Email (Cliente - GSI)
+        // Esto es CRÍTICO si el token falló o no existe.
+        if (userEmail && window.google?.accounts?.id) {
+            console.log(`Revocando permisos GSI para: ${userEmail}`);
+            window.google.accounts.id.revoke(userEmail, done => {
+                console.log('Revocation complete for email ' + userEmail);
+            });
         }
 
-        // 2. Desactivar Auto-Select (Capa Adicional)
-        try {
-            if (window.google?.accounts?.id) {
-                window.google.accounts.id.disableAutoSelect();
-                console.log("Google AutoSelect disabled");
-            }
-        } catch (e) { console.warn("Error disabling AutoSelect:", e); }
+        // 1c. Disable AutoSelect
+        if (window.google?.accounts?.id) {
+            window.google.accounts.id.disableAutoSelect();
+        }
 
-        // 3. Limpieza de Cookies por Dominio (Brute force)
+        // 2. Limpieza de Cookies por Dominio (Brute force)
         const cookies = document.cookie.split(";");
         for (let i = 0; i < cookies.length; i++) {
             const cookie = cookies[i];
@@ -85,16 +91,18 @@ export const authService = {
             document.cookie = name.trim() + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
         }
 
-        // 4. Limpieza de Almacenamiento Local
+        // 3. Limpieza de Almacenamiento Local
         localStorage.clear();
         sessionStorage.clear();
 
-        // 5. Cerrar sesión en Supabase
+        // 4. Cerrar sesión en Supabase
         try {
             await supabase.auth.signOut();
-        } catch (e) { console.warn("Supabase signOut error:", e); }
+        } catch (e) {
+            console.warn("Supabase signOut error:", e);
+        }
 
-        // 6. Redirección con Timestamp (Cache Busting)
+        // 5. Redirección con Timestamp (Cache Busting)
         const timestamp = new Date().getTime();
         window.location.href = `${window.location.origin}/?logout=true&t=${timestamp}`;
     },

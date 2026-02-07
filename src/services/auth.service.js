@@ -5,11 +5,9 @@ import { supabase } from '../lib/supabase';
 
 export const authService = {
     loginWithGoogle: async () => {
-        console.log("Iniciando login con Google (Standard)...");
+        console.log("Iniciando login con Google (Manual Strict)...");
 
-        // Usamos la implementación estándar de Supabase.
-        // La manipulación manual de la URL (paso 2 anterior) se elimina porque
-        // Supabase ya codifica correctamente request params si se pasan en queryParams.
+        // 1. Obtener URL base de Supabase
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -17,23 +15,32 @@ export const authService = {
                     ? 'https://agenda-consultorio.netlify.app'
                     : window.location.origin,
                 skipBrowserRedirect: true,
-                queryParams: {
-                    // Configuración Anti-Silent Auth
-                    access_type: 'offline',
-                    prompt: 'consent select_account', // Fuerza selector de cuenta + consentimiento
-                    ux_mode: 'redirect', // Fuerza el modo redirección explícito
-                },
+                // NO pasamos queryParams aquí para evitar conflictos.
                 scopes: 'https://www.googleapis.com/auth/calendar'
             }
         });
 
         if (error) throw error;
 
-        // Solo redirigimos a la URL que nos da Supabase.
-        // Confiamos en que Supabase construyó bien el enlace 'authorize' de Google.
+        // 2. Construcción DE URL MANUAL Y ESTRICTA
         if (data?.url) {
-            console.log("Redirigiendo a URL de Supabase:", data.url);
-            window.location.href = data.url;
+            const urlObj = new URL(data.url);
+
+            // Limpieza preventiva
+            urlObj.searchParams.delete('prompt');
+            urlObj.searchParams.delete('access_type');
+            urlObj.searchParams.delete('ux_mode');
+
+            // Parámetros EXIGIDOS por el usuario para romper el bucle:
+            // 'select_account': Muestra la lista de cuentas SIEMPRE.
+            // 'consent': Pide confirmación de permisos (útil para refresh tokens).
+            urlObj.searchParams.set('prompt', 'consent select_account');
+            urlObj.searchParams.set('access_type', 'offline');
+            // 'redirect': Fuerza navegación completa, no popup.
+            urlObj.searchParams.set('ux_mode', 'redirect');
+
+            console.log("Redirecting to (Strict):", urlObj.toString());
+            window.location.href = urlObj.toString();
         } else {
             throw new Error('No se pudo generar la URL de autenticación.');
         }

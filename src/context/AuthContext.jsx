@@ -101,9 +101,14 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         setLoading(true);
-        await authService.logout();
-        setUser(null);
-        setLoading(false);
+        try {
+            await authService.logout();
+        } catch (e) {
+            console.warn("Error al cerrar sesión:", e);
+        } finally {
+            setUser(null);
+            setLoading(false);
+        }
     };
 
     return (

@@ -61,50 +61,59 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        // 1. Check sesión inicial con Timeout agresivo (3s)
+        let mounted = true;
+
+        // 1. Fail-safe absoluto: si en 5 segundos sigue cargando, parar
+        const safetyTimer = setTimeout(() => {
+            if (mounted) {
+                setLoading(current => {
+                    if (current) {
+                        console.warn("Forzando fin de carga por seguridad (Safety Timer).");
+                        return false;
+                    }
+                    return current;
+                });
+            }
+        }, 5000);
+
+        // 2. Check sesión inicial
         const initSession = async () => {
             try {
-                // Timeout más corto para dar feedback rápido
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Timeout verificando sesión')), 3000)
-                );
+                console.log("Iniciando sesión...");
+                const { data: { session }, error } = await supabase.auth.getSession();
 
-                const sessionPromise = supabase.auth.getSession();
-
-                // Race condition
-                const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
-
-                if (session) {
-                    await verifyUserRole(session.user);
-                } else {
-                    // Si no hay sesión, terminamos carga
-                    setLoading(false);
+                if (mounted) {
+                    if (error) throw error;
+                    if (session) {
+                        await verifyUserRole(session.user);
+                    } else {
+                        setLoading(false);
+                    }
                 }
             } catch (err) {
-                console.warn("InitSession fallback:", err);
-                // Fallback: Dejar que onAuthStateChange maneje o asumir logout
-                setLoading(false);
+                console.warn("Error initSession:", err);
+                if (mounted) setLoading(false);
             }
         };
 
         initSession();
 
-        // 2. Suscribirse a cambios
+        // 3. Suscribirse a cambios
         const { data: { subscription } } = authService.onAuthStateChange(async (event, session) => {
             console.log("Auth Event:", event);
+            if (!mounted) return;
 
             if (event === 'SIGNED_OUT' || !session) {
                 setUser(null);
                 setLoading(false);
-                return;
-            }
-
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 await verifyUserRole(session.user);
             }
         });
 
         return () => {
+            mounted = false;
+            clearTimeout(safetyTimer);
             subscription.unsubscribe();
         };
     }, []);

@@ -42,12 +42,24 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         // 1. Check sesión inicial
+        // 1. Check sesión inicial con Timeout de seguridad
         const initSession = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                // Timeout para evitar que se quede cargando infinito si Supabase no responde
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Timeout verificando sesión')), 5000)
+                );
+
+                const sessionPromise = supabase.auth.getSession();
+
+                // Race entre obtener sesión y el timeout
+                const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+
                 await verifyUserRole(session?.user);
             } catch (err) {
-                console.error(err);
+                console.error("Error o Timeout en initSession:", err);
+                // Si falla por timeout o error, asumimos no logueado y dejamos pasar al Login
+                setUser(null);
                 setLoading(false);
             }
         };

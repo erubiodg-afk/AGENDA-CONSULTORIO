@@ -1,7 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '../components/ui/Button';
+import { Mail, Loader2, AlertCircle } from 'lucide-react';
 
-export function Login({ onLogin }) {
+export function Login({ onLogin, error }) {
+    const [isLoading, setIsLoading] = useState(false);
+    // const [error, setError] = useState(''); // Error viene de props ahora
+
+    // const handleSubmit ... eliminado
+
     return (
         <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-50">
             {/* Background Decor - Subtle shapes */}
@@ -25,7 +31,6 @@ export function Login({ onLogin }) {
                     <h1 className="text-2xl md:text-3xl font-bold text-brand-dark tracking-tight">
                         Dra. Claudia Franco
                     </h1>
-
                 </div>
 
                 {/* Value Prop */}
@@ -35,23 +40,41 @@ export function Login({ onLogin }) {
 
                 {/* Google Button */}
                 <div className="w-full space-y-4">
+                    {error && (
+                        <div className="flex items-center gap-2 text-sm text-red-500 bg-red-50 p-3 rounded-lg animate-in fade-in slide-in-from-top-1 text-center justify-center">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            <p>{error}</p>
+                        </div>
+                    )}
+
                     <Button
                         className="w-full h-12 md:h-14 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm hover:shadow transition-all duration-200 rounded-xl group relative overflow-hidden"
                         onClick={onLogin}
+                        disabled={isLoading}
                     >
                         <div className="flex items-center justify-center gap-3">
-                            <img
-                                src="https://www.svgrepo.com/show/475656/google-color.svg"
-                                alt="Google"
-                                className="w-5 h-5 md:w-6 md:h-6 shrink-0"
-                            />
-                            <span className="font-medium text-base">Continuar con Google</span>
+                            {isLoading ? (
+                                <Loader2 className="w-5 h-5 animate-spin text-brand-purple" />
+                            ) : (
+                                <>
+                                    <img
+                                        src="https://www.svgrepo.com/show/475656/google-color.svg"
+                                        alt="Google"
+                                        className="w-5 h-5 md:w-6 md:h-6 shrink-0"
+                                    />
+                                    <span className="font-medium text-base">Continuar con Google</span>
+                                </>
+                            )}
                         </div>
                         {/* Subtle splash effect on hover */}
                         <div className="absolute inset-0 bg-slate-100 opacity-0 group-hover:opacity-10 transition-opacity" />
                     </Button>
+                </div>
 
-                    {/* Footer Note Removed */}
+                <div className="mt-6 text-center">
+                    <p className="text-xs text-slate-400">
+                        Solo usuarios autorizados pueden acceder.
+                    </p>
                 </div>
             </div>
 

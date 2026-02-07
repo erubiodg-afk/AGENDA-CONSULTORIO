@@ -18,13 +18,10 @@ export const authService = {
                     : window.location.origin,
                 skipBrowserRedirect: true,
                 queryParams: {
-                    // 'select_account' obliga a mostrar el selector de cuentas.
-                    // 'consensus' pide permisos.
-                    // Probamos solo con 'select_account' para máxima claridad, 
-                    // o 'consent select_account' si se requieren ambos.
-                    // Google recomienda separarlos por espacio.
+                    // Configuración Anti-Silent Auth
                     access_type: 'offline',
-                    prompt: 'select_account',
+                    prompt: 'consent select_account', // Fuerza selector de cuenta + consentimiento
+                    ux_mode: 'redirect', // Fuerza el modo redirección explícito
                 },
                 scopes: 'https://www.googleapis.com/auth/calendar'
             }

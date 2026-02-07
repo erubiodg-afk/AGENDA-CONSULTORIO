@@ -14,36 +14,53 @@
 
   <!-- Google Identity Services (Necesario para revocación cliente) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    window.onload = function () {
+      if (window.google) {
+        // Inicialización explícita para deshabilitar auto_select globalmente
+        // Usamos un client_id dummy o vacío si Supabase lo maneja internamente, 
+        // pero la configuración global ayuda.
+        // Nota: Sin client_id real esto podría fallar, pero disableAutoSelect() funciona igual.
+        try {
+          google.accounts.id.initialize({
+            client_id: "YOUR_GOOGLE_CLIENT_ID", // Supabase lo inyecta, aquí aseguramos defaults
+            auto_select: false,
+            ux_mode: 'redirect'
+          });
+        } catch (e) { console.log("GSI init skipped (managed by Supabase/OAuth flow)"); }
+      }
+    }
+  </script>
 
   <!-- CRITICAL: Script de Limpieza Temprana (Bloqueo de Sesión) -->
   <script>
-    (function () {
-      // Verificar si estamos en flujo de logout
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('logout') === 'true') {
-        console.warn("🔒 SECURITY: Forced Logout Detected in Head");
+      (function () {
+        // Verificar si estamos en flujo de logout
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('logout') === 'true') {
+          console.warn("🔒 SECURITY: Forced Logout Detected in Head");
 
-        // 1. Limpieza Local Inmediata
-        try {
-          window.localStorage.clear();
-          window.sessionStorage.clear();
-        } catch (e) { console.error("Storage clear error", e); }
+          // 1. Limpieza Local Inmediata
+          try {
+            window.localStorage.clear();
+            window.sessionStorage.clear();
+          } catch (e) { console.error("Storage clear error", e); }
 
-        // 2. Limpieza de Cookies (Brute Force)
-        var cookies = document.cookie.split(";");
-        for (var i = 0; i < cookies.length; i++) {
-          var cookie = cookies[i];
-          var eqPos = cookie.indexOf("=");
-          var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+          // 2. Limpieza de Cookies (Brute Force)
+          var cookies = document.cookie.split(";");
+          for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i];
+            var eqPos = cookie.indexOf("=");
+            var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+          }
+
+          // 3. Limpiar URL para evitar bucles, manteniendo el hash si es necesario
+          // No recargamos aquí para permitir que la app cargue en estado limpio
+          const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
         }
-
-        // 3. Limpiar URL para evitar bucles, manteniendo el hash si es necesario
-        // No recargamos aquí para permitir que la app cargue en estado limpio
-        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
-      }
-    })();
+      })();
   </script>
 </head>
 

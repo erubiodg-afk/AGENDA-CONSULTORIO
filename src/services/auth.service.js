@@ -5,21 +5,35 @@ import { supabase } from '../lib/supabase';
 
 export const authService = {
     loginWithGoogle: async () => {
+        // 1. Obtener URL de autenticación sin redirigir automáticamente
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 redirectTo: import.meta.env.PROD
                     ? 'https://agenda-consultorio.netlify.app'
                     : window.location.origin,
+                skipBrowserRedirect: true, // Importante: Control manual
                 queryParams: {
                     access_type: 'offline',
-                    prompt: 'consent select_account',
+                    prompt: 'consent select_account', // Supabase debería ponerlo, pero aseguramos abajo
                 },
                 scopes: 'https://www.googleapis.com/auth/calendar'
             }
         });
+
         if (error) throw error;
-        return data;
+
+        // 2. Forzar manualmente los parámetros en la URL generada
+        if (data?.url) {
+            const urlObj = new URL(data.url);
+            // Sobrescribir prompt para asegurar que nada lo quite
+            urlObj.searchParams.set('prompt', 'consent select_account');
+
+            console.log("Redirigiendo manualmente a Google Auth:", urlObj.toString());
+            window.location.href = urlObj.toString();
+        }
+
+        return data; // Por compatibilidad, aunque la página cambiará
     },
 
     logout: async () => {

@@ -41,7 +41,6 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        // 1. Check sesión inicial
         // 1. Check sesión inicial con Timeout de seguridad
         const initSession = async () => {
             try {

@@ -16,18 +16,12 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
     window.onload = function () {
-      if (window.google) {
-        // Inicialización explícita para deshabilitar auto_select globalmente
-        // Usamos un client_id dummy o vacío si Supabase lo maneja internamente, 
-        // pero la configuración global ayuda.
-        // Nota: Sin client_id real esto podría fallar, pero disableAutoSelect() funciona igual.
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        // Intentar deshabilitar AutoSelect preventivamente
         try {
-          google.accounts.id.initialize({
-            client_id: "YOUR_GOOGLE_CLIENT_ID", // Supabase lo inyecta, aquí aseguramos defaults
-            auto_select: false,
-            ux_mode: 'redirect'
-          });
-        } catch (e) { console.log("GSI init skipped (managed by Supabase/OAuth flow)"); }
+          window.google.accounts.id.disableAutoSelect();
+          console.log("GSI: AutoSelect disabled on load");
+        } catch (e) { console.warn("GSI disableAutoSelect error", e); }
       }
     }
   </script>

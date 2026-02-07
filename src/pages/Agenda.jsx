@@ -192,6 +192,27 @@ export function Agenda() {
                 <h1 className="text-2xl font-bold text-slate-800 shrink-0">Agenda</h1>
 
                 <div className="flex-1 max-w-xl w-full relative">
+                    {/* Diagnostic Alert */}
+                    {error && (
+                        <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-3">
+                            <div className="text-red-500 mt-0.5">⚠️</div>
+                            <div className="flex-1">
+                                <h4 className="text-sm font-bold text-red-800">Error de Conexión con Google</h4>
+                                <p className="text-xs text-red-700 mt-1">{error.message}</p>
+                                {error.type === 'AUTH' && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="mt-2 bg-white border-red-200 text-red-700 hover:bg-red-50 h-7 text-xs"
+                                        onClick={() => window.location.reload()}
+                                    >
+                                        Recargar y Reintentar
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="relative group">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-brand-purple transition-colors" />
                         <input

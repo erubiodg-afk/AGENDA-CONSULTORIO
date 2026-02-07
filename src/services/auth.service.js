@@ -10,7 +10,12 @@ export const authService = {
             options: {
                 redirectTo: import.meta.env.PROD
                     ? 'https://agenda-consultorio.netlify.app'
-                    : window.location.origin
+                    : window.location.origin,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
+                scopes: 'https://www.googleapis.com/auth/calendar'
             }
         });
         if (error) throw error;

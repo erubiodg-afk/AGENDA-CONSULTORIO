@@ -25,43 +25,67 @@ const localizer = dateFnsLocalizer({
     locales,
 });
 
-// Mock Events
-const MOCK_EVENTS = [
-    {
-        id: 1,
-        title: 'Limpieza - Maria Perez',
-        start: new Date(2026, 0, 15, 10, 0),
-        end: new Date(2026, 0, 15, 10, 45),
-        resource: 'Dr. Franco',
-        phone: '555-0101',
-        notes: 'Paciente sensible'
-    },
-    {
-        id: 2,
-        title: 'Consulta General - Juan Lopez',
-        start: new Date(2026, 0, 16, 15, 30),
-        end: new Date(2026, 0, 16, 16, 15),
-        phone: '555-0202'
-    },
-    {
-        id: 3,
-        title: 'Ortodoncia - Ana Garcia',
-        start: new Date(2026, 0, 15, 12, 0),
-        end: new Date(2026, 0, 15, 13, 0),
-        phone: '555-0303'
-    }
-];
+import { calendarService } from '../services/calendar.service';
+import { useAuth } from '../context/AuthContext';
+import { addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+
+// ... (locales and localizer remain)
 
 export function Agenda() {
-    const [events, setEvents] = useState(MOCK_EVENTS);
+    const { user } = useAuth();
+    const [events, setEvents] = useState([]);
     const [view, setView] = useState(Views.WEEK);
-    const [date, setDate] = useState(new Date(2026, 0, 15));
+    const [date, setDate] = useState(new Date());
     const [searchTerm, setSearchTerm] = useState('');
+    const [loading, setLoading] = useState(false);
 
     // Drawer State
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [selectedEvent, setSelectedEvent] = useState(null);
+
+    // Fetch Events
+    const fetchEvents = async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            // Determine range based on view
+            let start, end;
+            if (view === Views.MONTH) {
+                start = startOfMonth(date);
+                end = endOfMonth(date);
+            } else {
+                start = startOfWeek(date, { locale: esES }); // Ajustar inicio semana
+                end = endOfWeek(date, { locale: esES });
+            }
+            // Buffer helper: fetch +/- 1 month roughly to be safe or just current view
+            // For simplicity, fetching a wide range around current date 
+            const timeMin = addDays(start, -7);
+            const timeMax = addDays(end, 7);
+
+            const googleEvents = await calendarService.listEvents(timeMin, timeMax);
+
+            const mappedEvents = googleEvents.map(ev => ({
+                id: ev.id,
+                title: ev.summary || '(Sin título)',
+                start: new Date(ev.start.dateTime || ev.start.date),
+                end: new Date(ev.end.dateTime || ev.end.date),
+                notes: ev.description,
+                // Attempt to parse phone from description if structured, else undefined
+            }));
+            setEvents(mappedEvents);
+        } catch (error) {
+            console.error("Error fetching events:", error);
+            // alert("Error cargando calendario. Asegúrate de haber dado permisos.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Reload when date/view changes
+    React.useEffect(() => {
+        fetchEvents();
+    }, [date, view, user]);
 
     const handleSelectSlot = ({ start }) => {
         setSelectedSlot(start);
@@ -82,25 +106,28 @@ export function Agenda() {
         setIsDrawerOpen(true);
     }
 
-    const handleSave = (data) => {
+    const handleSave = async (data) => {
         const startDateTime = parseISO(`${data.date}T${data.time}`);
         const endDateTime = addMinutes(startDateTime, parseInt(data.duration));
 
-        const newEvent = {
-            id: data.id || Math.random(),
-            title: `${data.treatment} - ${data.patient}`,
-            start: startDateTime,
-            end: endDateTime,
-            phone: data.phone,
-            notes: data.notes
-        };
+        setLoading(true);
+        try {
+            const newEventDetails = {
+                title: `${data.treatment} - ${data.patient}`,
+                description: `Tel: ${data.phone}\nNotas: ${data.notes || ''}`,
+                start: startDateTime,
+                end: endDateTime,
+            };
 
-        if (data.id) {
-            setEvents(events.map(e => e.id === data.id ? newEvent : e));
-        } else {
-            setEvents([...events, newEvent]);
+            await calendarService.createEvent(newEventDetails);
+            await fetchEvents(); // Refresh
+            setIsDrawerOpen(false);
+        } catch (error) {
+            console.error("Error creating event:", error);
+            alert("Error al guardar en Google Calendar");
+        } finally {
+            setLoading(false);
         }
-        setIsDrawerOpen(false);
     };
 
     const handleDelete = (id) => {

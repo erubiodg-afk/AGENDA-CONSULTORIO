@@ -133,7 +133,6 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {
             console.warn("Cierre de sesión forzado por timeout o error:", e);
         } finally {
-        } finally {
             // Limpieza Total del Cliente
             console.log("Limpiando estado local y storage...");
             localStorage.clear(); // [Hard Logout] Borra todo: auth, cache, settings

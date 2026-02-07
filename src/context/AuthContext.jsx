@@ -61,24 +61,28 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        // 1. Check sesión inicial con Timeout de seguridad
+        // 1. Check sesión inicial con Timeout agresivo (3s)
         const initSession = async () => {
             try {
-                // Timeout para evitar que se quede cargando infinito si Supabase no responde
+                // Timeout más corto para dar feedback rápido
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Timeout verificando sesión')), 5000)
+                    setTimeout(() => reject(new Error('Timeout verificando sesión')), 3000)
                 );
 
                 const sessionPromise = supabase.auth.getSession();
 
-                // Race entre obtener sesión y el timeout
+                // Race condition
                 const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
 
-                await verifyUserRole(session?.user);
+                if (session) {
+                    await verifyUserRole(session.user);
+                } else {
+                    // Si no hay sesión, terminamos carga
+                    setLoading(false);
+                }
             } catch (err) {
-                console.error("Error o Timeout en initSession:", err);
-                // Si falla por timeout o error, asumimos no logueado y dejamos pasar al Login
-                setUser(null);
+                console.warn("InitSession fallback:", err);
+                // Fallback: Dejar que onAuthStateChange maneje o asumir logout
                 setLoading(false);
             }
         };
@@ -132,9 +136,9 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('auth_cached_role');
             setUser(null);
             setLoading(false);
-            // Forzar redirección limpia si es necesario
+            // Redirección forzada pero limpia
             if (window.location.pathname !== '/') {
-                window.location.href = '/';
+                window.location.replace('/');
             }
         }
     };

@@ -5,34 +5,42 @@ import { supabase } from '../lib/supabase';
 
 export const authService = {
     loginWithGoogle: async () => {
-        // 1. Obtener URL de autenticación sin redirigir automáticamente
+        console.log("Iniciando login con Google...");
+
+        // 1. Obtener URL base de Supabase sin redirigir
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 redirectTo: import.meta.env.PROD
                     ? 'https://agenda-consultorio.netlify.app'
                     : window.location.origin,
-                skipBrowserRedirect: true, // Importante: Control manual
-                queryParams: {
-                    access_type: 'offline',
-                    prompt: 'consent select_account', // Obligatorio para forzar selector
-                },
-                scopes: 'https://www.googleapis.com/auth/calendar' // Scope adicional
+                skipBrowserRedirect: true,
+                // NO pasamos queryParams aquí para evitar duplicados o conflictos internos.
+                // Los inyectaremos manualmente en la URL generada.
+                scopes: 'https://www.googleapis.com/auth/calendar'
             }
         });
 
         if (error) throw error;
 
-        // 2. Forzar manualmente los parámetros en la URL generada
+        // 2. Construcción manual y forzada de la URL
         if (data?.url) {
             const urlObj = new URL(data.url);
 
-            // Forzar prompt y access_type en la URL final
+            // Limpiar parámetros para asegurar estado fresco
+            urlObj.searchParams.delete('prompt');
+            urlObj.searchParams.delete('access_type');
+
+            // Inyección explícita de parámetros
+            // 'consent' fuerza la pantalla de permisos (para obtener refresh token)
+            // 'select_account' fuerza el selector de cuentas
             urlObj.searchParams.set('prompt', 'consent select_account');
             urlObj.searchParams.set('access_type', 'offline');
 
-            console.log("Redirigiendo manualmente a Google Auth con prompt forzado:", urlObj.toString());
+            console.log("Redirecting to (forced):", urlObj.toString());
             window.location.href = urlObj.toString();
+        } else {
+            throw new Error('No se pudo generar la URL de autenticación.');
         }
 
         return data;

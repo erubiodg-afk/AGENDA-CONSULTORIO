@@ -55,14 +55,17 @@ export const AuthProvider = ({ children }) => {
         initSession();
 
         // 2. Suscribirse a cambios
-        const { data: { subscription } } = authService.onAuthStateChange(async (_event, session) => {
-            if (session?.user) {
-                // Si hay usuario, verificar rol (optimizable: cachear si no cambia)
-                // Para seguridad, siempre verificamos contra DB al cambio de auth
-                await verifyUserRole(session.user);
-            } else {
+        const { data: { subscription } } = authService.onAuthStateChange(async (event, session) => {
+            console.log("Auth Event:", event);
+
+            if (event === 'SIGNED_OUT' || !session) {
                 setUser(null);
                 setLoading(false);
+                return;
+            }
+
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                await verifyUserRole(session.user);
             }
         });
 

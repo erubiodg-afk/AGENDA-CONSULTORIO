@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 
 export const authService = {
     loginWithGoogle: async () => {
-        console.log("Iniciando login con Google (Manual Strict)...");
+        console.log("Iniciando login con Google (Manual/Clean)...");
 
         // 1. Obtener URL base de Supabase
         const { data, error } = await supabase.auth.signInWithOAuth({
@@ -22,24 +22,22 @@ export const authService = {
 
         if (error) throw error;
 
-        // 2. Construcción DE URL MANUAL Y ESTRICTA
+        // 2. Construcción URL Manual
         if (data?.url) {
             const urlObj = new URL(data.url);
 
-            // Limpieza preventiva
+            // Limpieza TOTAL de parámetros que puedan inducir auto-login
             urlObj.searchParams.delete('prompt');
             urlObj.searchParams.delete('access_type');
             urlObj.searchParams.delete('ux_mode');
+            urlObj.searchParams.delete('login_hint'); // Evitar sugerencia de usuario anterior
 
-            // Parámetros EXIGIDOS por el usuario para romper el bucle:
-            // 'select_account': Muestra la lista de cuentas SIEMPRE.
-            // 'consent': Pide confirmación de permisos (útil para refresh tokens).
-            urlObj.searchParams.set('prompt', 'consent select_account');
+            // Configuración forzada para mostrar selector
+            // SOLO 'select_account' para evitar conflictos con 'consent'
+            urlObj.searchParams.set('prompt', 'select_account');
             urlObj.searchParams.set('access_type', 'offline');
-            // 'redirect': Fuerza navegación completa, no popup.
-            urlObj.searchParams.set('ux_mode', 'redirect');
 
-            console.log("Redirecting to (Strict):", urlObj.toString());
+            console.log("Redirecting to (Clean):", urlObj.toString());
             window.location.href = urlObj.toString();
         } else {
             throw new Error('No se pudo generar la URL de autenticación.');

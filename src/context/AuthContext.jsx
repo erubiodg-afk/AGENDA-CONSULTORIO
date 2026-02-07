@@ -133,13 +133,15 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {
             console.warn("Cierre de sesión forzado por timeout o error:", e);
         } finally {
-            localStorage.removeItem('auth_cached_role');
+        } finally {
+            // Limpieza Total del Cliente
+            console.log("Limpiando estado local y storage...");
+            localStorage.clear(); // [Hard Logout] Borra todo: auth, cache, settings
             setUser(null);
             setLoading(false);
-            // Redirección forzada pero limpia
-            if (window.location.pathname !== '/') {
-                window.location.replace('/');
-            }
+
+            // Forzar recarga completa para asegurar limpieza de memoria/contextos
+            window.location.href = '/';
         }
     };
 

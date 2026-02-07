@@ -23,10 +23,11 @@ export const authService = {
     },
 
     logout: async () => {
-        // Intentar revocar token de Google si existe
+        // 1. Revocar token de Google (Hard Logout)
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.provider_token) {
+                console.log("Revocando token de Google...");
                 await fetch('https://oauth2.googleapis.com/revoke', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -37,8 +38,12 @@ export const authService = {
             console.warn("Error revoking Google token:", e);
         }
 
+        // 2. Cerrar sesión en Supabase
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
+
+        // 3. Limpieza local explícita (por si acaso)
+        localStorage.removeItem('sb-' + import.meta.env.VITE_SUPABASE_URL + '-auth-token');
     },
 
     getSession: async () => {

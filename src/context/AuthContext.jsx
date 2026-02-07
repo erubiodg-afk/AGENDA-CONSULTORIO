@@ -15,26 +15,46 @@ export const AuthProvider = ({ children }) => {
         if (!sessionUser) {
             setUser(null);
             setLoading(false);
+            localStorage.removeItem('auth_cached_role'); // Limpiar caché al salir
             return;
         }
 
+        // 1. Intentar carga rápida desde caché
+        const cachedRole = localStorage.getItem('auth_cached_role');
+        if (cachedRole) {
+            try {
+                const parsedRole = JSON.parse(cachedRole);
+                if (parsedRole.email === sessionUser.email) {
+                    console.log("Usando credenciales en caché");
+                    setUser({ ...sessionUser, ...parsedRole });
+                    setLoading(false); // Desbloquear UI inmediatamente
+                }
+            } catch (e) { console.error("Error parsing cached role", e); }
+        }
+
         try {
-            // Verificar si está en la tabla de usuarios autorizados
+            // 2. Revalidar con base de datos (segundo plano si ya cargó caché)
             const authorizedUser = await dbService.checkUserAuthorized(sessionUser.email);
 
             if (authorizedUser) {
                 // Combinar datos de sesión con datos de rol
-                setUser({ ...sessionUser, ...authorizedUser });
+                const fullUser = { ...sessionUser, ...authorizedUser };
+                setUser(fullUser);
+                // Actualizar caché
+                localStorage.setItem('auth_cached_role', JSON.stringify(authorizedUser));
             } else {
                 console.warn(`Usuario no autorizado: ${sessionUser.email}`);
-                await authService.logout();
+                await logout(); // Usar función segura
                 setError('No tienes permiso para acceder a esta aplicación.');
-                setUser(null);
+                return; // Logout se encarga de limpiar
             }
         } catch (err) {
             console.error('Error verificando rol:', err);
-            setError('Error de conexión verificando permisos.');
-            setUser(null);
+            // Si falló la red pero teníamos caché, permitimos seguir (opcional, aquí avisamos)
+            if (!cachedRole) {
+                setError('Error de conexión verificando permisos.');
+                setUser(null);
+            }
         } finally {
             setLoading(false);
         }

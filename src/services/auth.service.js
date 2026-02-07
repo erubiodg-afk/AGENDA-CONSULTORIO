@@ -15,9 +15,9 @@ export const authService = {
                 skipBrowserRedirect: true, // Importante: Control manual
                 queryParams: {
                     access_type: 'offline',
-                    prompt: 'consent select_account', // Supabase debería ponerlo, pero aseguramos abajo
+                    prompt: 'consent select_account', // Obligatorio para forzar selector
                 },
-                scopes: 'https://www.googleapis.com/auth/calendar'
+                scopes: 'https://www.googleapis.com/auth/calendar' // Scope adicional
             }
         });
 
@@ -26,18 +26,20 @@ export const authService = {
         // 2. Forzar manualmente los parámetros en la URL generada
         if (data?.url) {
             const urlObj = new URL(data.url);
-            // Sobrescribir prompt para asegurar que nada lo quite
-            urlObj.searchParams.set('prompt', 'consent select_account');
 
-            console.log("Redirigiendo manualmente a Google Auth:", urlObj.toString());
+            // Forzar prompt y access_type en la URL final
+            urlObj.searchParams.set('prompt', 'consent select_account');
+            urlObj.searchParams.set('access_type', 'offline');
+
+            console.log("Redirigiendo manualmente a Google Auth con prompt forzado:", urlObj.toString());
             window.location.href = urlObj.toString();
         }
 
-        return data; // Por compatibilidad, aunque la página cambiará
+        return data;
     },
 
     logout: async () => {
-        // 1. Revocar token de Google (Hard Logout)
+        // 1. Intentar obtener sesión para revocar token
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.provider_token) {
@@ -56,8 +58,15 @@ export const authService = {
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
 
-        // 3. Limpieza local explícita (por si acaso)
-        localStorage.removeItem('sb-' + import.meta.env.VITE_SUPABASE_URL + '-auth-token');
+        // 3. Limpieza local TOTAL
+        console.log("Realizando limpieza local exhaustiva...");
+        localStorage.clear(); // Borra todo
+        sessionStorage.clear(); // Borra todo
+
+        // Eliminar cookies específicas si existen (aunque HttpOnly no se pueden borrar desde JS)
+        document.cookie.split(";").forEach((c) => {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
     },
 
     getSession: async () => {

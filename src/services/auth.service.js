@@ -8,7 +8,9 @@ export const authService = {
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.origin // Redirige al home tras login
+                redirectTo: import.meta.env.PROD
+                    ? 'https://agenda-consultorio.netlify.app'
+                    : window.location.origin
             }
         });
         if (error) throw error;

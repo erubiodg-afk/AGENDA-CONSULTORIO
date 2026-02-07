@@ -51,7 +51,11 @@ export function Sidebar({ className, onLogout }) {
                     </div>
                 </div>
                 <button
-                    onClick={onLogout}
+                    onClick={() => {
+                        console.log("Sidebar: Logout clicked");
+                        if (onLogout) onLogout();
+                        else console.error("Sidebar: onLogout prop is missing!");
+                    }}
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
                 >
                     <LogOut className="w-4 h-4" />

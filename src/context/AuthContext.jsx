@@ -132,6 +132,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
+        console.log("AuthContext: Logout initiated");
         setLoading(true);
         try {
             // Race: si Supabase tarda más de 2s, forzamos salida local

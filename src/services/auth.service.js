@@ -5,9 +5,11 @@ import { supabase } from '../lib/supabase';
 
 export const authService = {
     loginWithGoogle: async () => {
-        console.log("Iniciando login con Google...");
+        console.log("Iniciando login con Google (Standard)...");
 
-        // 1. Obtener URL base de Supabase sin redirigir
+        // Usamos la implementación estándar de Supabase.
+        // La manipulación manual de la URL (paso 2 anterior) se elimina porque
+        // Supabase ya codifica correctamente request params si se pasan en queryParams.
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -16,8 +18,13 @@ export const authService = {
                     : window.location.origin,
                 skipBrowserRedirect: true,
                 queryParams: {
+                    // 'select_account' obliga a mostrar el selector de cuentas.
+                    // 'consensus' pide permisos.
+                    // Probamos solo con 'select_account' para máxima claridad, 
+                    // o 'consent select_account' si se requieren ambos.
+                    // Google recomienda separarlos por espacio.
                     access_type: 'offline',
-                    prompt: 'consent select_account', // Supabase debería ponerlo
+                    prompt: 'select_account',
                 },
                 scopes: 'https://www.googleapis.com/auth/calendar'
             }
@@ -25,21 +32,11 @@ export const authService = {
 
         if (error) throw error;
 
-        // 2. Construcción manual (redundancia de seguridad)
+        // Solo redirigimos a la URL que nos da Supabase.
+        // Confiamos en que Supabase construyó bien el enlace 'authorize' de Google.
         if (data?.url) {
-            const urlObj = new URL(data.url);
-
-            // Confirmar que prompt esté presente
-            if (!urlObj.searchParams.has('prompt') || !urlObj.searchParams.get('prompt').includes('select_account')) {
-                urlObj.searchParams.set('prompt', 'consent select_account');
-            }
-            // Asegurar access_type
-            if (!urlObj.searchParams.has('access_type')) {
-                urlObj.searchParams.set('access_type', 'offline');
-            }
-
-            console.log("Redirecting to (final):", urlObj.toString());
-            window.location.href = urlObj.toString();
+            console.log("Redirigiendo a URL de Supabase:", data.url);
+            window.location.href = data.url;
         } else {
             throw new Error('No se pudo generar la URL de autenticación.');
         }

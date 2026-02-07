@@ -17,26 +17,23 @@
   <script>
     window.onload = function () {
       if (window.google && window.google.accounts && window.google.accounts.id) {
-        // SOLICITUD DE USUARIO: Configuración explícita de inicialización
-        // Nota: Requiere 'client_id' para funcionar correctamente en modo Sign-In.
-        // Si Supabase no lo expone aquí, se usa un placeholder para aplicar la configuración global.
+        // CONFIGURACIÓN ANTI-SILENT AUTH (Solicitada)
         try {
+          // Si tienes tu Client ID, ponlo aquí. Si no, disableAutoSelect() es la defensa principal.
           google.accounts.id.initialize({
-            client_id: "YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER",
-            auto_select: false, // CRÍTICO: Deshabilita auto-login
+            client_id: "YOUR_GOOGLE_CLIENT_ID_HERE",
+            auto_select: false, // <--- CRÍTICO: ESTO ES FALSE
             ux_mode: 'redirect'
           });
-          // También llamamos al método directo por si acaso
+          // Prompt explícito
+          // google.accounts.id.prompt(); 
+        } catch (e) { console.warn("GSI Init partial:", e); }
+
+        // LLAMADA DIRECTA OBLIGATORIA
+        try {
           window.google.accounts.id.disableAutoSelect();
-          console.log("GSI: Initialized with auto_select: false");
-        } catch (e) {
-          console.warn("GSI Init Error (likely missing client_id):", e);
-          // Fallback
-          try {
-            window.google.accounts.id.disableAutoSelect();
-            console.log("GSI: AutoSelect disabled (fallback)");
-          } catch (z) { console.error(z); }
-        }
+          console.log("Anti-Gravity: GSI AutoSelect DISABLED");
+        } catch (e) { console.error(e); }
       }
     }
   </script>
@@ -47,25 +44,40 @@
         // Verificar si estamos en flujo de logout
         const params = new URLSearchParams(window.location.search);
         if (params.get('logout') === 'true') {
-          console.warn("🔒 SECURITY: Forced Logout Detected in Head");
+          console.warn("🔒 SECURITY: Forced Logout & Cookie Nuke");
 
-          // 1. Limpieza Local Inmediata
+          // 1. Limpieza Local
           try {
             window.localStorage.clear();
             window.sessionStorage.clear();
-          } catch (e) { console.error("Storage clear error", e); }
+          } catch (e) { console.error(e); }
 
-          // 2. Limpieza de Cookies (Brute Force)
+          // 2. Limpieza de Cookies Específicas de Google y Generales
+          const cookiesToNuke = [
+            "G_AUTHUSER_H", // <--- CRÍTICO (Solicitado por usuario)
+            "G_ENABLED_IDPS",
+            "G_AUTHUSER_H",
+            "G_AUTHUSER",
+            "sb-access-token",
+            "sb-refresh-token"
+          ];
+
+          // Borrado dirigido
+          cookiesToNuke.forEach(name => {
+            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+          });
+
+          // Borrado escoba (todo lo demás)
           var cookies = document.cookie.split(";");
           for (var i = 0; i < cookies.length; i++) {
             var cookie = cookies[i];
             var eqPos = cookie.indexOf("=");
             var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+            document.cookie = name.trim() + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
           }
 
-          // 3. Limpiar URL para evitar bucles, manteniendo el hash si es necesario
-          // No recargamos aquí para permitir que la app cargue en estado limpio
+          // 3. Limpiar URL
           const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
           window.history.replaceState({}, document.title, newUrl);
         }

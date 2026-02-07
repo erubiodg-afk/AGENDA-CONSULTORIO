@@ -48,7 +48,7 @@ export const authService = {
     },
 
     logout: async () => {
-        console.log("Ejecutando Cierre Forzado de Sesión (v4 - Email Revocation)...");
+        console.log("Ejecutando Cierre Forzado de Sesión (v5 - Specific Cookie Nuke)...");
 
         // 1. Obtener Sesión para Email y Token
         let userEmail = null;
@@ -68,21 +68,34 @@ export const authService = {
             }
         } catch (e) { console.warn("Error getting session for revoke:", e); }
 
-        // 1b. Revocación de Permisos por Email (Cliente - GSI)
-        // Esto es CRÍTICO si el token falló o no existe.
+        // 1b. Revocación de Permisos por Email (Cliente - GSI) OBLIGATORIA
         if (userEmail && window.google?.accounts?.id) {
-            console.log(`Revocando permisos GSI para: ${userEmail}`);
+            console.log(`INTENTO DE REVOCACIÓN GSI para: ${userEmail}`);
             window.google.accounts.id.revoke(userEmail, done => {
-                console.log('Revocation complete for email ' + userEmail);
+                console.log('GSI Revocation callback received for ' + userEmail);
+                if (done.error) console.error("GSI Revoke Error:", done.error);
             });
+        } else {
+            // Fallback si no hay email en contexto (usuario ya limpio localstorage?)
+            // Intentar revocar al "usuario actual" si la librería lo permite (no documentado std, pero intentamos disableAutoSelect)
+            try {
+                window.google.accounts.id.disableAutoSelect();
+            } catch (e) { }
         }
 
-        // 1c. Disable AutoSelect
+        // 1c. Disable AutoSelect (Redundante pero necesario)
         if (window.google?.accounts?.id) {
             window.google.accounts.id.disableAutoSelect();
         }
 
-        // 2. Limpieza de Cookies por Dominio (Brute force)
+        // 2. Limpieza de Cookies Específicas (Espejo de index.html)
+        const cookiesToNuke = ["G_AUTHUSER_H", "G_ENABLED_IDPS", "G_AUTHUSER", "sb-access-token", "sb-refresh-token"];
+        cookiesToNuke.forEach(name => {
+            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        });
+
+        // 3. Limpieza de Cookies General (Brute force)
         const cookies = document.cookie.split(";");
         for (let i = 0; i < cookies.length; i++) {
             const cookie = cookies[i];
@@ -91,18 +104,18 @@ export const authService = {
             document.cookie = name.trim() + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
         }
 
-        // 3. Limpieza de Almacenamiento Local
+        // 4. Limpieza de Almacenamiento Local
         localStorage.clear();
         sessionStorage.clear();
 
-        // 4. Cerrar sesión en Supabase
+        // 5. Cerrar sesión en Supabase
         try {
             await supabase.auth.signOut();
         } catch (e) {
             console.warn("Supabase signOut error:", e);
         }
 
-        // 5. Redirección con Timestamp (Cache Busting)
+        // 6. Redirección con Timestamp (Cache Busting)
         const timestamp = new Date().getTime();
         window.location.href = `${window.location.origin}/?logout=true&t=${timestamp}`;
     },

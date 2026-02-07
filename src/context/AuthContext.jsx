@@ -121,11 +121,21 @@ export const AuthProvider = ({ children }) => {
     const loginGoogle = async () => {
         setLoading(true);
         setError(null);
+
+        // Timeout de seguridad para evitar que se quede pegado eternamente
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('El inicio de sesión tardó demasiado. Por favor intenta de nuevo.')), 10000)
+        );
+
         try {
-            await authService.loginWithGoogle();
-            // La redirección ocurrirá, la verificación se hará al volver
+            await Promise.race([
+                authService.loginWithGoogle(),
+                timeoutPromise
+            ]);
+            // La redirección ocurrirá y la página se descargará
         } catch (e) {
-            setError(e.message);
+            console.error("Login error:", e);
+            setError(e.message || 'Error al iniciar sesión');
             setLoading(false);
             throw e;
         }

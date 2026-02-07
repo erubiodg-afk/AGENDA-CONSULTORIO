@@ -17,11 +17,26 @@
   <script>
     window.onload = function () {
       if (window.google && window.google.accounts && window.google.accounts.id) {
-        // Intentar deshabilitar AutoSelect preventivamente
+        // SOLICITUD DE USUARIO: Configuración explícita de inicialización
+        // Nota: Requiere 'client_id' para funcionar correctamente en modo Sign-In.
+        // Si Supabase no lo expone aquí, se usa un placeholder para aplicar la configuración global.
         try {
+          google.accounts.id.initialize({
+            client_id: "YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER",
+            auto_select: false, // CRÍTICO: Deshabilita auto-login
+            ux_mode: 'redirect'
+          });
+          // También llamamos al método directo por si acaso
           window.google.accounts.id.disableAutoSelect();
-          console.log("GSI: AutoSelect disabled on load");
-        } catch (e) { console.warn("GSI disableAutoSelect error", e); }
+          console.log("GSI: Initialized with auto_select: false");
+        } catch (e) {
+          console.warn("GSI Init Error (likely missing client_id):", e);
+          // Fallback
+          try {
+            window.google.accounts.id.disableAutoSelect();
+            console.log("GSI: AutoSelect disabled (fallback)");
+          } catch (z) { console.error(z); }
+        }
       }
     }
   </script>

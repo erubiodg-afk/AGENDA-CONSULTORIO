@@ -30,14 +30,15 @@ export const authService = {
             urlObj.searchParams.delete('prompt');
             urlObj.searchParams.delete('access_type');
             urlObj.searchParams.delete('ux_mode');
-            urlObj.searchParams.delete('login_hint'); // Evitar sugerencia de usuario anterior
+            urlObj.searchParams.delete('login_hint');
 
             // Configuración forzada para mostrar selector
-            // SOLO 'select_account' para evitar conflictos con 'consent'
-            urlObj.searchParams.set('prompt', 'select_account');
+            // SOLICITUD DE USUARIO: prompt: 'select_account' y ux_mode: 'redirect'
+            urlObj.searchParams.set('prompt', 'select_account'); // Fuerza lista de cuentas
             urlObj.searchParams.set('access_type', 'offline');
+            urlObj.searchParams.set('ux_mode', 'redirect'); // Fuerza redirección (GIS/Standard)
 
-            console.log("Redirecting to (Clean):", urlObj.toString());
+            console.log("Redirecting to (Strict/UserRequested):", urlObj.toString());
             window.location.href = urlObj.toString();
         } else {
             throw new Error('No se pudo generar la URL de autenticación.');

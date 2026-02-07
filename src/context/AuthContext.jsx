@@ -125,6 +125,7 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {
             console.warn("Error al cerrar sesión:", e);
         } finally {
+            localStorage.removeItem('auth_cached_role');
             setUser(null);
             setLoading(false);
         }

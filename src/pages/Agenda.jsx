@@ -124,7 +124,7 @@ export function Agenda() {
             setIsDrawerOpen(false);
         } catch (error) {
             console.error("Error creating event:", error);
-            alert("Error al guardar en Google Calendar");
+            alert("Error al guardar en Google Calendar: " + error.message);
         } finally {
             setLoading(false);
         }

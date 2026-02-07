@@ -121,13 +121,21 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         setLoading(true);
         try {
-            await authService.logout();
+            // Race: si Supabase tarda más de 2s, forzamos salida local
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Logout Timeout')), 2000)
+            );
+            await Promise.race([authService.logout(), timeoutPromise]);
         } catch (e) {
-            console.warn("Error al cerrar sesión:", e);
+            console.warn("Cierre de sesión forzado por timeout o error:", e);
         } finally {
             localStorage.removeItem('auth_cached_role');
             setUser(null);
             setLoading(false);
+            // Forzar redirección limpia si es necesario
+            if (window.location.pathname !== '/') {
+                window.location.href = '/';
+            }
         }
     };
 

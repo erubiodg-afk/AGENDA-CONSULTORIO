@@ -47,19 +47,21 @@ export const authService = {
     },
 
     logout: async () => {
-        console.log("Ejecutando Cierre Forzado de Sesión...");
+        console.log("Ejecutando Cierre Forzado de Sesión (v2 - Cache Buster)...");
 
         // 1. Revocación Inmediata (Google Identity Services)
         try {
             if (window.google?.accounts?.id) {
                 window.google.accounts.id.disableAutoSelect();
+                // Intento de revocar si tenemos el correo (a veces funciona sin token)
+                // window.google.accounts.id.revoke('user_email', done => ...); 
                 console.log("Google AutoSelect disabled");
             }
         } catch (e) {
             console.warn("Error disabling Google AutoSelect:", e);
         }
 
-        // 2. Limpieza de Cookies por Dominio
+        // 2. Limpieza de Cookies por Dominio (Brute force)
         const cookies = document.cookie.split(";");
         for (let i = 0; i < cookies.length; i++) {
             const cookie = cookies[i];
@@ -68,20 +70,21 @@ export const authService = {
             document.cookie = name.trim() + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
         }
 
-        // 3. Limpieza de Almacenamiento Local (Backup)
+        // 3. Limpieza de Almacenamiento Local
         localStorage.clear();
         sessionStorage.clear();
 
-        // 4. Cerrar sesión en Supabase (sin esperar confirmación estricta para no bloquear)
+        // 4. Cerrar sesión en Supabase
         try {
             await supabase.auth.signOut();
         } catch (e) {
             console.warn("Supabase signOut error:", e);
         }
 
-        // 5. Redirección con Parámetro de Limpieza
-        // Usamos window.location.origin para ir a la raíz (donde está Login)
-        window.location.href = `${window.location.origin}/?logout=true`;
+        // 5. Redirección con Timestamp (Cache Busting)
+        // Agregamos timestamp para evitar que el navegador use una versión caché de la redirección
+        const timestamp = new Date().getTime();
+        window.location.href = `${window.location.origin}/?logout=true&t=${timestamp}`;
     },
 
     getSession: async () => {

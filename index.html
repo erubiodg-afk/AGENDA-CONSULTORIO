@@ -4,7 +4,43 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DentOffice - Dra. Claudia Franco</title>
+    <!-- Cache Control: Force fresh load -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
+    <title>Consultorio - Dra. Claudia Franco</title>
+    
+    <!-- CRITICAL: Script de Limpieza Temprana (Bloqueo de Sesión) -->
+    <script>
+      (function() {
+        // Verificar si estamos en flujo de logout
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('logout') === 'true') {
+          console.warn("🔒 SECURITY: Forced Logout Detected in Head");
+          
+          // 1. Limpieza Local Inmediata
+          try {
+            window.localStorage.clear();
+            window.sessionStorage.clear();
+          } catch(e) { console.error("Storage clear error", e); }
+          
+          // 2. Limpieza de Cookies (Brute Force)
+          var cookies = document.cookie.split(";");
+          for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i];
+            var eqPos = cookie.indexOf("=");
+            var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+          }
+          
+          // 3. Limpiar URL para evitar bucles, manteniendo el hash si es necesario
+          // No recargamos aquí para permitir que la app cargue en estado limpio
+          const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
